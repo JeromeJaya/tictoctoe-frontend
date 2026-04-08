@@ -1237,7 +1237,8 @@ function createParticles() {
 createParticles();
 
 const LOCALHOST_BASE_URL = "http://localhost:3000";
-const BASE_URL = "https://tictoctoe-backend.onrender.com";
+const backend_BASE_URL = "https://tictoctoe-backend.onrender.com";
+const frontend_BASE_URL = "https://tttfront.netlify.app";
 
 // Redirect if not logged in
 if (!localStorage.getItem("userId")) {
@@ -1262,7 +1263,7 @@ async function loadDashboardData() {
     try {
         // Fetch user profile
         console.log('Fetching user profile...');
-        const userResponse = await fetch(`${BASE_URL}/api/user?userId=${userId}`);
+        const userResponse = await fetch(`${backend_BASE_URL}/api/user?userId=${userId}`);
         const userData = await userResponse.json();
         
         if (userData.error) {
@@ -1290,7 +1291,7 @@ async function loadDashboardData() {
         
         // Fetch friends list
         console.log('Fetching friends list...');
-        const friendsResponse = await fetch(`${BASE_URL}/api/friends?userId=${userId}`);
+        const friendsResponse = await fetch(`${backend_BASE_URL}/api/friends?userId=${userId}`);
         const friendsData = await friendsResponse.json();
         
         console.log('Friends API response:', friendsData);
@@ -1307,7 +1308,7 @@ async function loadDashboardData() {
         
         // Fetch all users for challenge modal
         console.log('Fetching all users...');
-        const usersResponse = await fetch(`${BASE_URL}/api/users`);
+        const usersResponse = await fetch(`${backend_BASE_URL}/api/users`);
         const usersData = await usersResponse.json();
         
         if (!usersData.error) {
@@ -1659,7 +1660,7 @@ async function searchUsers() {
 
 async function addFriend(friendId, friendName) {
     try {
-        const response = await fetch(`${BASE_URL}/api/add-friend`, {
+        const response = await fetch(`${backend_BASE_URL}/api/add-friend`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -1680,7 +1681,7 @@ async function addFriend(friendId, friendName) {
         alert(`✅ ${friendName} has been added to your friends list!`);
         
         // Refresh friends list
-        const friendsResponse = await fetch(`${BASE_URL}/api/friends?userId=${currentUser._id}`);
+        const friendsResponse = await fetch(`${backend_BASE_URL}/api/friends?userId=${currentUser._id}`);
         const friendsData = await friendsResponse.json();
         
         if (!friendsData.error) {
