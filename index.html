@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login</title>
+
+<style>
+body {
+    font-family: Arial;
+    background: linear-gradient(135deg, #1e3c72, #2a5298);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.container {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    width: 300px;
+    text-align: center;
+}
+
+input {
+    width: 90%;
+    padding: 10px;
+    margin: 10px 0;
+}
+
+button {
+    padding: 10px;
+    width: 100%;
+    background: #2a5298;
+    color: white;
+    border: none;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+.register-btn {
+    background: #4CAF50;
+    margin-top: 15px;
+}
+
+.register-btn:hover {
+    background: #45a049;
+}
+
+.form-container {
+    display: none;
+}
+
+.form-container.active {
+    display: block;
+}
+
+.toggle-link {
+    color: #2a5298;
+    cursor: pointer;
+    text-decoration: underline;
+    margin-top: 15px;
+    display: inline-block;
+}
+
+.toggle-link:hover {
+    color: #1e3c72;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <!-- Login Form -->
+    <div id="loginForm" class="form-container active">
+        <h2>Login</h2>
+        <input type="text" id="loginUsername" placeholder="Username">
+        <input type="password" id="loginPassword" placeholder="Password">
+        <button onclick="login()">Login</button>
+        <span class="toggle-link" onclick="showRegister()">New user? Register here</span>
+    </div>
+
+    <!-- Registration Form -->
+    <div id="registerForm" class="form-container">
+        <h2>Register</h2>
+        <input type="text" id="regUsername" placeholder="Username">
+        <input type="password" id="regPassword" placeholder="Password">
+        <input type="password" id="regConfirmPassword" placeholder="Confirm Password">
+        <button class="register-btn" onclick="register()">Register</button>
+        <span class="toggle-link" onclick="showLogin()">Already have an account? Login</span>
+    </div>
+</div>
+
+<script>
+const BASE_URL = "http://localhost:3000";
+
+// Toggle between login and register forms
+function showRegister() {
+    document.getElementById("loginForm").classList.remove("active");
+    document.getElementById("registerForm").classList.add("active");
+}
+
+function showLogin() {
+    document.getElementById("registerForm").classList.remove("active");
+    document.getElementById("loginForm").classList.add("active");
+}
+
+async function login() {
+    const username = document.getElementById("loginUsername").value;
+    const password = document.getElementById("loginPassword").value;
+
+    const res = await fetch(`${BASE_URL}/login`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ username, password })
+    });
+
+    let data;
+    const text = await res.text();
+    try {
+        data = JSON.parse(text);
+    } catch (err) {
+        console.error('Login response parse error:', err, 'response text:', text);
+        alert(`Login failed: unexpected server response (${res.status})`);
+        return;
+    }
+
+    if (!res.ok || data.error) {
+        alert("Login failed: " + (data.error || res.statusText));
+        return;
+    }
+
+    // Save user data
+    localStorage.setItem("userId", data.userId);
+    localStorage.setItem("username", username);
+
+    // Redirect
+    window.location.href = `${BASE_URL}/dashboard`;
+}
+
+async function register() {
+    const username = document.getElementById("regUsername").value;
+    const password = document.getElementById("regPassword").value;
+    const confirmPassword = document.getElementById("regConfirmPassword").value;
+
+    // Validate passwords match
+    if (password !== confirmPassword) {
+        alert("Passwords do not match!");
+        return;
+    }
+
+    // Validate input
+    if (!username || !password) {
+        alert("Please fill in all fields");
+        return;
+    }
+
+    const res = await fetch(`${BASE_URL}/register`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ username, password })
+    });
+
+    const data = await res.json();
+
+    if (data.error) {
+        alert("Registration failed: " + data.error);
+        return;
+    }
+
+    alert("Registration successful! Please login.");
+    showLogin();
+}
+</script>
+
+</body>
+</html>

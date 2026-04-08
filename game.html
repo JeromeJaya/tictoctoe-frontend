@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Multiplayer Tic Tac Toe</title>
+
+<style>
+body {
+    text-align: center;
+    font-family: Arial;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    min-height: 100vh;
+    margin: 0;
+    padding: 20px;
+}
+
+.container {
+    max-width: 600px;
+    margin: 0 auto;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 30px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+h1 {
+    margin-bottom: 10px;
+    font-size: 2.5em;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.game-info {
+    margin-bottom: 20px;
+    font-size: 1.2em;
+}
+
+#board {
+    display: grid;
+    gap: 10px;
+    justify-content: center;
+    margin: 20px auto;
+    max-width: 400px;
+}
+
+.cell {
+    width: 80px;
+    height: 80px;
+    background: rgba(255, 255, 255, 0.9);
+    color: #333;
+    font-size: 36px;
+    font-weight: bold;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.cell:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+.cell.taken {
+    cursor: not-allowed;
+}
+
+.cell.taken:hover {
+    transform: none;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+#info {
+    margin-top: 20px;
+    font-size: 18px;
+    font-weight: bold;
+    min-height: 24px;
+}
+
+button {
+    margin-top: 15px;
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 16px;
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.6);
+}
+
+button:active {
+    transform: translateY(0);
+}
+
+.player-info {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
+
+.player {
+    text-align: center;
+}
+
+.player.current-turn {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 10px;
+}
+
+.player-symbol {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.player-name {
+    font-size: 14px;
+}
+
+.winner-message {
+    color: #ffd700;
+    font-size: 24px;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    animation: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+    from { text-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
+    to { text-shadow: 0 0 20px rgba(255, 215, 0, 0.8), 0 0 30px rgba(255, 215, 0, 0.6); }
+}
+
+.draw-message {
+    color: #ff9800;
+    font-size: 24px;
+}
+
+.waiting-message {
+    color: #2196f3;
+    font-size: 18px;
+}
+
+</style>
+
+</head>
+<body>
+
+<div class="container">
+    <h1>🎮 Tic Tac Toe Battle</h1>
+    
+    <div id="gameInfo" class="game-info">
+        <div id="playerInfo" class="player-info">
+            <!-- Player info will be populated by JavaScript -->
+        </div>
+        <div id="info"></div>
+    </div>
+
+    <div id="board"></div>
+
+    <button onclick="leaveGame()">Leave Game</button>
+</div>
+
+<script>
+// Game state
+let gameId = null;
+let currentPlayer = null;
+let mySymbol = null;
+let players = [];
+let board = [];
+let boardSize = 3;
+let gameStatus = 'waiting';
+let ws = null;
+
+// Get URL parameters
+function getUrlParameter(name) {
+    name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+    const regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+    const results = regex.exec(location.search);
+    return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+}
+
+// Initialize game
+function initGame() {
+    const urlGameId = getUrlParameter('gameId');
+    const userId = localStorage.getItem('userId');
+    
+    console.log('Initializing game with:', { urlGameId, userId });
+    
+    if (!urlGameId || !userId) {
+        console.error('Missing gameId or userId');
+        document.getElementById('info').innerHTML = '<div class="waiting-message">Invalid game session. Please return to dashboard.</div>';
+        return;
+    }
+    
+    gameId = urlGameId;
+    connectWebSocket(userId);
+}
+
+// WebSocket connection
+function connectWebSocket(userId) {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}?userId=${userId}`;
+    
+    console.log('Connecting to WebSocket:', wsUrl);
+    
+    ws = new WebSocket(wsUrl);
+    
+    ws.onopen = () => {
+        console.log('Connected to game server');
+        document.getElementById('info').innerHTML = '<div class="waiting-message">Connected! Waiting for game to start...</div>';
+        
+        // Request game info if we have a gameId
+        if (gameId) {
+            console.log('Requesting game info for gameId:', gameId);
+            ws.send(JSON.stringify({
+                type: 'join_game',
+                gameId: gameId
+            }));
+        }
+    };
+    
+    ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        handleGameMessage(data);
+    };
+    
+    ws.onclose = () => {
+        console.log('Disconnected from game server');
+        document.getElementById('info').innerHTML = '<div class="waiting-message">Disconnected from server. Please refresh.</div>';
+    };
+    
+    ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        document.getElementById('info').innerHTML = '<div class="waiting-message">Connection error. Please refresh.</div>';
+    };
+}
+
+// Handle incoming game messages
+function handleGameMessage(data) {
+    console.log('Received game message:', data);
+    
+    switch (data.type) {
+        case 'game_start':
+            console.log('Starting game with data:', data);
+            startGame(data);
+            break;
+        case 'game_move':
+            console.log('Updating game state:', data);
+            updateGameState(data);
+            break;
+        case 'game_error':
+            console.log('Game error:', data.message);
+            document.getElementById('info').innerHTML = `<div style="color: #f44336;">${data.message}</div>`;
+            break;
+        default:
+            console.log('Unknown game message:', data.type);
+    }
+}
+
+// Start the game
+function startGame(data) {
+    console.log('startGame called with:', data);
+    
+    gameId = data.gameId;
+    players = data.players;
+    board = data.currentBoard;
+    currentPlayer = data.currentPlayer;
+    boardSize = data.boardSize;
+    gameStatus = 'active';
+    
+    // Find my symbol
+    const myPlayer = players.find(p => p.userId === localStorage.getItem('userId'));
+    mySymbol = myPlayer ? myPlayer.symbol : 'X';
+    
+    console.log('My player info:', { myPlayer, mySymbol, userId: localStorage.getItem('userId') });
+    
+    renderGame();
+    updateInfo();
+}
+
+// Update game state after a move
+function updateGameState(data) {
+    board = data.currentBoard;
+    currentPlayer = data.currentPlayer;
+    gameStatus = data.gameStatus;
+    
+    renderBoard();
+    updateInfo();
+    
+    if (data.gameStatus === 'finished') {
+        if (data.winner) {
+            document.getElementById('info').innerHTML = 
+                `<div class="winner-message">🏆 ${data.winner.username} wins!</div>`;
+        } else {
+            document.getElementById('info').innerHTML = 
+                '<div class="draw-message">🤝 It\'s a draw!</div>';
+        }
+    }
+}
+
+// Render the game UI
+function renderGame() {
+    renderPlayerInfo();
+    renderBoard();
+    updateInfo();
+}
+
+// Render player information
+function renderPlayerInfo() {
+    const playerInfoDiv = document.getElementById('playerInfo');
+    playerInfoDiv.innerHTML = '';
+    
+    players.forEach(player => {
+        const playerDiv = document.createElement('div');
+        playerDiv.className = `player ${currentPlayer === player.symbol ? 'current-turn' : ''}`;
+        
+        playerDiv.innerHTML = `
+            <div class="player-symbol">${player.symbol}</div>
+            <div class="player-name">${player.username}</div>
+        `;
+        
+        playerInfoDiv.appendChild(playerDiv);
+    });
+}
+
+// Render the game board
+function renderBoard() {
+    const boardDiv = document.getElementById('board');
+    boardDiv.innerHTML = '';
+    boardDiv.style.gridTemplateColumns = `repeat(${boardSize}, 80px)`;
+    
+    board.forEach((cell, index) => {
+        const div = document.createElement('div');
+        div.classList.add('cell');
+        div.innerText = cell ? cell : '';
+        
+        if (cell) {
+            div.classList.add('taken');
+        } else if (gameStatus === 'active' && currentPlayer === mySymbol) {
+            div.onclick = () => makeMove(index);
+        }
+        
+        boardDiv.appendChild(div);
+    });
+}
+
+// Update game information
+function updateInfo() {
+    const infoDiv = document.getElementById('info');
+    
+    if (gameStatus === 'finished') {
+        return; // Winner/draw message already shown
+    }
+    
+    if (currentPlayer === mySymbol) {
+        infoDiv.innerHTML = '<div style="color: #4caf50;">🎯 Your turn!</div>';
+    } else {
+        const currentPlayerName = players.find(p => p.symbol === currentPlayer)?.username || 'Opponent';
+        infoDiv.innerHTML = `<div style="color: #ff9800;">⏳ Waiting for ${currentPlayerName}...</div>`;
+    }
+}
+
+// Make a move
+function makeMove(position) {
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+        alert('Connection lost. Please refresh the page.');
+        return;
+    }
+    
+    if (gameStatus !== 'active' || currentPlayer !== mySymbol) {
+        return;
+    }
+    
+    ws.send(JSON.stringify({
+        type: 'game_move',
+        gameId: gameId,
+        position: position
+    }));
+}
+
+// Leave game
+function leaveGame() {
+    if (ws) {
+        ws.close();
+    }
+    window.location.href = 'dashboard.html';
+}
+
+// Initialize when page loads
+window.onload = initGame;
+</script>
+
+</body>
+</html>
