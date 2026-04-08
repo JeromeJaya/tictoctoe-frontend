@@ -177,6 +177,9 @@ button:active {
 </div>
 
 <script>
+// URLs
+const backend_BASE_URL = "https://tictoctoe-backend.onrender.com";
+
 // Game state
 let gameId = null;
 let currentPlayer = null;
@@ -214,8 +217,7 @@ function initGame() {
 
 // WebSocket connection
 function connectWebSocket(userId) {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}?userId=${userId}`;
+    const wsUrl = backend_BASE_URL.replace('https://', 'wss://') + `?userId=${userId}`;
     
     console.log('Connecting to WebSocket:', wsUrl);
     

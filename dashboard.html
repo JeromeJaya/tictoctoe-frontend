@@ -1715,7 +1715,7 @@ function logout() {
 
 // WebSocket Connection for Real-time Challenges
 function connectWebSocket(userId) {
-    const wsUrl = `ws://tictoctoe-backend.onrender.com?userId=${userId}`;
+    const wsUrl = backend_BASE_URL.replace('https://', 'wss://') + `?userId=${userId}`;
     ws = new WebSocket(wsUrl);
     
     ws.onopen = () => {
