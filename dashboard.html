@@ -1762,6 +1762,10 @@ function handleWebSocketMessage(data) {
         case 'game_error':
             alert(`❌ ${data.message}`);
             break;
+        case 'user_status_change':
+            console.log(`User ${data.userId} status changed to ${data.status}`);
+            updateUserStatusInUI(data.userId, data.status);
+            break;
         default:
             console.log('Unknown WebSocket message type:', data.type);
     }
@@ -1841,6 +1845,65 @@ function rejectChallenge() {
         popup.style.display = 'none';
         popup.classList.remove('fade-out');
     }, 500);
+}
+
+// Update user status in the UI dynamically
+function updateUserStatusInUI(userId, status) {
+    // Update friend cards in the friends list
+    const friendCards = document.querySelectorAll('.friend-card');
+    friendCards.forEach(card => {
+        const friendName = card.querySelector('.friend-name').textContent;
+        
+        // Find the friend in the friends list
+        const friend = friendsList.find(f => {
+            const name = f.userId?.username || f.username;
+            const id = f.userId?._id || f._id;
+            return id === userId || name === friendName;
+        });
+        
+        if (friend && (friend.userId?._id === userId || friend._id === userId)) {
+            const statusElement = card.querySelector('.friend-status');
+            if (statusElement) {
+                statusElement.textContent = status === 'online' ? '● Online' : '○ Offline';
+                statusElement.style.color = status === 'online' ? '#4caf50' : '#999';
+            }
+        }
+    });
+    
+    // Update friends in the challenge modal
+    const friendItems = document.querySelectorAll('.friend-challenge-item');
+    friendItems.forEach(item => {
+        // Find friend button in this item
+        const button = item.querySelector('.challenge-btn');
+        
+        // Find matching friend
+        const friend = allUsers.find(u => u._id === userId);
+        if (friend) {
+            if (status === 'online') {
+                button.disabled = false;
+                button.style.opacity = '1';
+                button.style.cursor = 'pointer';
+            } else {
+                button.disabled = true;
+                button.style.opacity = '0.5';
+                button.style.cursor = 'not-allowed';
+            }
+            
+            // Update status text
+            const statusElement = item.querySelector('.friend-status');
+            if (statusElement) {
+                statusElement.textContent = status === 'online' ? '● Online' : '○ Offline';
+                statusElement.classList.remove('online', 'offline');
+                statusElement.classList.add(status);
+            }
+        }
+    });
+    
+    // Update all users in allUsers array
+    const userToUpdate = allUsers.find(u => u._id === userId);
+    if (userToUpdate) {
+        userToUpdate.profile.status = status;
+    }
 }
 
 // Load dashboard data on page load
