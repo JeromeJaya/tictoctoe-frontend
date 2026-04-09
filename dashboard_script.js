@@ -336,9 +336,6 @@ function multiLevelChallenge() {
                         <span class="friend-status ${friend.profile.status}">${friend.profile.status === 'online' ? '● Online' : '○ Offline'}</span>
                     </div>
                 </div>
-                <button class="challenge-btn" onclick="sendMultiLevelChallenge('${friend.username}', '${friend._id}')" ${friend.profile.status === 'offline' ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>
-                    🔥 Challenge
-                </button>
             `;
             friendsList.appendChild(friendItem);
         });
