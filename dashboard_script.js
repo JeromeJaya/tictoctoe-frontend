@@ -24,12 +24,12 @@ function createParticles() {
 createParticles();
 
 const LOCALHOST_BASE_URL = "http://localhost:3000";
-const backend_BASE_URL = "https://tictoctoe-backend.onrender.com";
-const frontend_BASE_URL = "https://tttfront.netlify.app";
+const backend_BASE_URL = LOCALHOST_BASE_URL;
+const frontend_BASE_URL = "";
 
 // Redirect if not logged in
 if (!localStorage.getItem("userId")) {
-    window.location.href = "/";
+    window.location.href = "index.html";
 }
 
 // Load all data from MongoDB
@@ -43,7 +43,7 @@ async function loadDashboardData() {
     
     if (!userId) {
         console.error('No user ID found, redirecting to login');
-        window.location.href = "/";
+        window.location.href = "index.html";
         return;
     }
     
@@ -592,7 +592,7 @@ function logout() {
     }
     
     // Redirect to login page
-    window.location.href = "/";
+    window.location.href = "index.html";
 }
 
 // WebSocket Connection for Real-time Challenges

@@ -33,7 +33,8 @@
 
 <script>
 // URLs
-const backend_BASE_URL = "https://tictoctoe-backend.onrender.com";
+const backend_BASE_URL = "http://localhost:3000";
+const frontend_BASE_URL = "";
 
 // Game state
 let gameId = null;
@@ -235,7 +236,7 @@ function updateMultiLevelDisplay() {
         const myUserId = localStorage.getItem('userId');
         const myLevels = levelsWon.find(l => {
             const player = players.find(p => p.userId === myUserId);
-            return player && p.username === l.username;
+            return player && player.username === l.username;
         });
         
         document.getElementById('levelsWonDisplay').innerHTML = levelsWon
