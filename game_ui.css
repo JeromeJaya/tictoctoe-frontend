@@ -149,3 +149,49 @@ button:active {
     color: #2196f3;
     font-size: 18px;
 }
+
+/* Multi-Level Game Styles */
+.multi-level-info {
+    background: linear-gradient(135deg, #ff6b6b 0%, #f093fb 100%);
+    padding: 15px 25px;
+    border-radius: 15px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.level-indicator {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: bold;
+}
+
+#currentLevelDisplay {
+    font-size: 20px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.levels-won {
+    font-size: 14px;
+}
+
+.level-score {
+    margin: 0 5px;
+    padding: 5px 10px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+}
+
+.player-levels-won {
+    font-size: 12px;
+    color: #ffd700;
+    margin-top: 5px;
+}
+
+.multi-level-result {
+    margin-top: 10px;
+    font-size: 16px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}

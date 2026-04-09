@@ -139,6 +139,7 @@ function loadGameHistory(gameHistory) {
                     <strong>${game.result === 'won' ? '🏆 Won' : game.result === 'lost' ? '❌ Lost' : '🤝 Draw'}</strong> vs ${game.opponent}
                     <div style="font-size: 12px; color: #666; margin-top: 5px;">${game.date}</div>
                 </div>
+                <!--ggn-->
                 <button class="game-replay-btn" onclick="watchReplay('${game.replayId}')">▶️ Replay</button>
             </div>
         </div>
@@ -290,6 +291,91 @@ function sendChallenge(friendName, friendId) {
     }));
     
     alert(`⚔️ Challenge sent to ${friendName}! Waiting for response...`);
+    closeModal();
+}
+
+// Multi-Level Challenge Functions
+function multiLevelChallenge() {
+    console.log('Multi-level challenge button clicked');
+    console.log('currentUser:', currentUser);
+    console.log('allUsers:', allUsers);
+    
+    if (!currentUser || !allUsers || allUsers.length === 0) {
+        alert('Loading user data... Please wait a moment and try again.');
+        return;
+    }
+    
+    const modal = document.getElementById('challengeModal');
+    const friendsList = document.getElementById('challengeFriendsList');
+    
+    // Clear previous content
+    friendsList.innerHTML = '';
+    
+    // Show all users except current user
+    const availableFriends = allUsers.filter(u => u._id !== currentUser._id);
+    console.log('Available friends to challenge:', availableFriends.length);
+    
+    if (availableFriends.length === 0) {
+        friendsList.innerHTML = '<div class="card">No friends available to challenge</div>';
+    } else {
+        availableFriends.forEach((friend, index) => {
+            console.log(`Processing friend ${index}:`, friend);
+            
+            if (!friend || !friend.profile) {
+                console.error('Friend missing profile data:', friend);
+                return;
+            }
+            
+            const friendItem = document.createElement('div');
+            friendItem.className = 'friend-challenge-item';
+            friendItem.innerHTML = `
+                <div class="friend-challenge-info">
+                    <img src="${friend.profile.avatar}" alt="${friend.username}">
+                    <div class="friend-details">
+                        <span class="friend-name" onclick="showFriendProfile('${friend._id}')">${friend.username}</span>
+                        <span class="friend-status ${friend.profile.status}">${friend.profile.status === 'online' ? '● Online' : '○ Offline'}</span>
+                    </div>
+                </div>
+                <button class="challenge-btn" onclick="sendMultiLevelChallenge('${friend.username}', '${friend._id}')" ${friend.profile.status === 'offline' ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>
+                    🔥 Challenge
+                </button>
+            `;
+            friendsList.appendChild(friendItem);
+        });
+    }
+    
+    // Update modal header
+    const modalHeader = document.querySelector('.modal-header');
+    if (modalHeader) {
+        modalHeader.innerHTML = '🔥 Multi-Level Battle (3 Levels)';
+    }
+    
+    // Show modal
+    modal.classList.add('active');
+    console.log('Multi-level challenge modal opened');
+}
+
+function sendMultiLevelChallenge(friendName, friendId) {
+    const friend = allUsers.find(u => u._id === friendId);
+    if (!friend || friend.profile.status === 'offline') {
+        alert(`${friendName} is currently offline!`);
+        return;
+    }
+    
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+        alert('Connection lost. Please refresh the page.');
+        return;
+    }
+    
+    // Send multi-level challenge via WebSocket
+    ws.send(JSON.stringify({
+        type: 'start_multi_level_game',
+        toUserId: friendId,
+        toUsername: friendName,
+        fromUsername: currentUser.username
+    }));
+    
+    alert(`🔥 Multi-Level Challenge sent to ${friendName}!\n\nThis is a 3-level battle:\n- Level 1: 3x3\n- Level 2: 4x4\n- Level 3: 5x5\n\nWin the majority to be the final winner!`);
     closeModal();
 }
 
@@ -546,12 +632,16 @@ function handleWebSocketMessage(data) {
             break;
         case 'challenge_accepted':
             alert(`🎉 ${data.message}`);
-            // TODO: Start game with opponent
             break;
         case 'challenge_rejected':
             alert(`❌ ${data.message}`);
             break;
         case 'game_start':
+            console.log('Game start data:', data);
+            // Check if it's a multi-level game
+            if (data.isMultiLevel) {
+                alert(`🔥 Multi-Level Battle Started!\n\nLevel 1: 3x3\nLevel 2: 4x4\nLevel 3: 5x5\n\nWin the majority to be the final winner!`);
+            }
             // Navigate to game page with game ID
             window.location.href = `game.html?gameId=${data.gameId}`;
             break;
@@ -566,6 +656,13 @@ function handleWebSocketMessage(data) {
             console.log(`User ${data.userId} rank changed to ${data.rank} (${data.rankPoints} points)`);
             updateUserRankInUI(data.userId, data.rank, data.rankPoints);
             break;
+        case 'level_transition':
+            // Show level transition notification
+            if (data.message) {
+                showNotification(data.message, 'success');
+            }
+            console.log('Level transition:', data);
+            break;
         default:
             console.log('Unknown WebSocket message type:', data.type);
     }
@@ -579,10 +676,19 @@ function showChallengePopup(data) {
     // Store challenge data for response functions
     popup.challengeId = data.challengeId;
     popup.challengerId = data.challengerId;
+    popup.gameType = data.gameType || 'single'; // Store game type
     
     // Update popup content
     challengerName.textContent = data.challengerName || 'Unknown Player';
     challengerAvatar.src = data.challengerAvatar || 'https://i.pravatar.cc/40';
+    
+    // Update challenge message based on game type
+    const challengeMessage = document.querySelector('.challenge-message');
+    if (data.gameType === 'multi_level') {
+        challengeMessage.innerHTML = `🔥 ${data.challengerName} challenged you to a <strong>3-Level Battle!</strong><br><small>Win the majority to be the final winner!</small>`;
+    } else {
+        challengeMessage.innerHTML = `${data.challengerName} challenged you to a Tic Tac Toe game!`;
+    }
     
     // Show popup
     popup.style.display = 'block';
@@ -608,10 +714,12 @@ function acceptChallenge() {
         return;
     }
     
+    // Send challenge response with game type
     ws.send(JSON.stringify({
         type: 'challenge_response',
         challengeId: popup.challengeId,
-        accepted: true
+        accepted: true,
+        gameType: popup.gameType || 'single'
     }));
     
     // Hide popup immediately - game will start via WebSocket
