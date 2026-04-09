@@ -562,6 +562,10 @@ function handleWebSocketMessage(data) {
             console.log(`User ${data.userId} status changed to ${data.status}`);
             updateUserStatusInUI(data.userId, data.status);
             break;
+        case 'rank_change':
+            console.log(`User ${data.userId} rank changed to ${data.rank} (${data.rankPoints} points)`);
+            updateUserRankInUI(data.userId, data.rank, data.rankPoints);
+            break;
         default:
             console.log('Unknown WebSocket message type:', data.type);
     }
@@ -702,6 +706,62 @@ function updateUserStatusInUI(userId, status) {
     }
 }
 
+// Update user rank in the UI dynamically
+function updateUserRankInUI(userId, newRank, newRankPoints) {
+    // Update current user's rank if it's them
+    if (currentUser && currentUser._id === userId) {
+        currentUser.profile.rank = newRank;
+        currentUser.profile.rankPoints = newRankPoints;
+        document.getElementById("userRank").innerText = newRank;
+    }
+
+    // Update friend cards in the friends list
+    const friendCards = document.querySelectorAll('.friend-card');
+    friendCards.forEach(card => {
+        const friendName = card.querySelector('.friend-name').textContent;
+
+        // Find the friend in the friends list
+        const friend = friendsList.find(f => {
+            const name = f.userId?.username || f.username;
+            return name === friendName;
+        });
+
+        if (friend && (friend.userId?._id === userId || friend._id === userId)) {
+            const rankElement = card.querySelector('.friend-rank');
+            if (rankElement) {
+                rankElement.textContent = `🏅 ${newRank}`;
+            }
+        }
+    });
+
+    // Update friends in the challenge modal
+    const friendItems = document.querySelectorAll('.friend-challenge-item');
+    friendItems.forEach(item => {
+        // Find friend button in this item
+        const button = item.querySelector('.challenge-btn');
+
+        // Find matching friend
+        const friend = allUsers.find(u => u._id === userId);
+        if (friend) {
+            friend.profile.rank = newRank;
+            friend.profile.rankPoints = newRankPoints;
+
+            // Update rank text in the modal
+            const rankText = item.querySelector('.rank-text');
+            if (rankText) {
+                rankText.textContent = `🏅 Rank: ${newRank}`;
+            }
+        }
+    });
+
+    // Update all users in allUsers array
+    const userToUpdate = allUsers.find(u => u._id === userId);
+    if (userToUpdate) {
+        userToUpdate.profile.rank = newRank;
+        userToUpdate.profile.rankPoints = newRankPoints;
+    }
+}
+
 // Profile Image Upload Function
 async function uploadProfileImage() {
     const fileInput = document.getElementById('avatarUpload');
@@ -763,7 +823,16 @@ async function uploadProfileImage() {
         
     } catch (error) {
         console.error('Upload error:', error);
-        alert('Failed to upload image. Please try again.');
+        
+        // Show specific error messages
+        let errorMessage = 'Failed to upload image. Please try again.';
+        if (error.message.includes('Image upload service not configured')) {
+            errorMessage = 'Image upload service not configured. Please contact the administrator.';
+        } else if (error.message.includes('cloud_name mismatch')) {
+            errorMessage = 'Image upload service configuration error. Please contact the administrator.';
+        }
+        
+        alert(errorMessage);
         
         // Restore original image on error
         profileAvatar.src = originalSrc;
