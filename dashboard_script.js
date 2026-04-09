@@ -62,6 +62,15 @@ async function loadDashboardData() {
         currentUser = userData.user;
         console.log('User loaded:', currentUser.username);
         
+        // Update profile avatar
+        const profileAvatar = document.getElementById('profileAvatar');
+        if (currentUser.profile && currentUser.profile.avatar) {
+            profileAvatar.src = currentUser.profile.avatar;
+        } else {
+            // Fallback to default avatar
+            profileAvatar.src = 'https://i.pravatar.cc/40';
+        }
+        
         // Update UI with user data
         document.getElementById("userId").innerText = currentUser._id;
         document.getElementById("username").innerText = currentUser.username;
@@ -176,7 +185,7 @@ function loadFriends(friends) {
             
             return `
                 <div class="friend-card">
-                    <img src="${friendData.profile.avatar}" alt="${friend.username || friendData.username}">
+                    <img src="${friendData.profile.avatar || 'https://i.pravatar.cc/40'}" alt="${friend.username || friendData.username}">
                     <div>
                         <div class="friend-name" onclick="showFriendProfileFromData('${friendData._id}')">${friend.username || friendData.username}</div>
                         <div class="friend-rank">🏅 ${friendData.profile.rank}</div>
@@ -691,6 +700,110 @@ function updateUserStatusInUI(userId, status) {
     if (userToUpdate) {
         userToUpdate.profile.status = status;
     }
+}
+
+// Profile Image Upload Function
+async function uploadProfileImage() {
+    const fileInput = document.getElementById('avatarUpload');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        return;
+    }
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+        alert('Please select a valid image file.');
+        return;
+    }
+    
+    // Validate file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+        alert('File size must be less than 5MB.');
+        return;
+    }
+    
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+        alert('User not logged in.');
+        return;
+    }
+    
+    // Show loading state
+    const profileAvatar = document.getElementById('profileAvatar');
+    const originalSrc = profileAvatar.src;
+    profileAvatar.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiM2NjdlZWEiLz4KPHBhdGggZD0iTTIwIDIwSDIwVjIwSDB2MEgyMFoiIGZpbGw9IndoaXRlIi8+Cjx0ZXh0IHg9IjIwIiB5PSIyNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0id2hpdGUiIGZvbnQtc2l6ZT0iMTIiPkxvYWRpbmcuLi48L3RleHQ+Cjwvc3ZnPgo=';
+    
+    try {
+        const formData = new FormData();
+        formData.append('profileImage', file);
+        formData.append('userId', userId);
+        
+        const response = await fetch(`${backend_BASE_URL}/api/upload-profile-image`, {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            // Update the profile image in the UI
+            profileAvatar.src = result.avatarUrl;
+            
+            // Update the avatar in local storage or current user data
+            if (currentUser) {
+                currentUser.profile.avatar = result.avatarUrl;
+            }
+            
+            // Show success message
+            showNotification('Profile image updated successfully!', 'success');
+        } else {
+            throw new Error(result.error || 'Upload failed');
+        }
+        
+    } catch (error) {
+        console.error('Upload error:', error);
+        alert('Failed to upload image. Please try again.');
+        
+        // Restore original image on error
+        profileAvatar.src = originalSrc;
+    }
+    
+    // Clear the file input
+    fileInput.value = '';
+}
+
+// Simple notification function
+function showNotification(message, type = 'info') {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.textContent = message;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${type === 'success' ? '#4caf50' : '#f44336'};
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        z-index: 10000;
+        font-weight: 500;
+        animation: slideIn 0.3s ease-out;
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease-in';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    }, 3000);
 }
 
 // Load dashboard data on page load

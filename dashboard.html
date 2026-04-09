@@ -17,7 +17,13 @@
     <div style="display: flex; align-items: center;">
         <button class="logout-btn" onclick="logout()">🚪 Logout</button>
         <div class="profile">
-            <img src="https://i.pravatar.cc/40">
+            <div class="profile-avatar-container">
+                <img id="profileAvatar" src="https://i.pravatar.cc/40" onclick="document.getElementById('avatarUpload').click()">
+                <div class="avatar-upload-overlay" onclick="document.getElementById('avatarUpload').click()">
+                    📷
+                </div>
+                <input type="file" id="avatarUpload" accept="image/*" style="display: none;" onchange="uploadProfileImage()">
+            </div>
             <div class="profile-info">
                 <span id="username"></span>
                 <span class="profile-rank" id="rank">Rank: #120</span>
