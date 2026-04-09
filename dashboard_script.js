@@ -74,7 +74,6 @@ async function loadDashboardData() {
         // Update UI with user data
         document.getElementById("userId").innerText = currentUser._id;
         document.getElementById("username").innerText = currentUser.username;
-        document.getElementById("userRank").innerText = currentUser.profile.rank;
         document.getElementById("gamesPlayed").innerText = currentUser.stats.gamesPlayed;
         document.getElementById("gamesWon").innerText = currentUser.stats.gamesWon;
         document.getElementById("winRate").innerText = currentUser.stats.winRate;
@@ -712,7 +711,6 @@ function updateUserRankInUI(userId, newRank, newRankPoints) {
     if (currentUser && currentUser._id === userId) {
         currentUser.profile.rank = newRank;
         currentUser.profile.rankPoints = newRankPoints;
-        document.getElementById("userRank").innerText = newRank;
     }
 
     // Update friend cards in the friends list
