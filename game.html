@@ -23,6 +23,9 @@
         <div id="playerInfo" class="player-info">
             <!-- Player info will be populated by JavaScript -->
         </div>
+        <div id="timeDisplay" class="time-display-container">
+            <!-- Time display will be populated by JavaScript -->
+        </div>
         <div id="info"></div>
     </div>
 
@@ -189,6 +192,11 @@ function updateGameState(data) {
         updateMultiLevelDisplay();
     }
     
+    // Update player times if available
+    if (data.playerTimes) {
+        updatePlayerTimes(data.playerTimes);
+    }
+    
     renderBoard();
     updateInfo();
     
@@ -198,6 +206,12 @@ function updateGameState(data) {
                 document.getElementById('info').innerHTML = 
                     `<div class="winner-message">🏆 ${data.winner.username} wins the Multi-Level Battle!</div>
                      <div class="multi-level-result">Levels Won: ${data.levelsWon.map(l => `${l.username}: ${l.levelsWon}`).join(' | ')}</div>`;
+            } else if (data.winner.wonByTime) {
+                // Winner by time in a draw
+                const timeInSeconds = (data.winner.timeTaken / 1000).toFixed(2);
+                document.getElementById('info').innerHTML = 
+                    `<div class="winner-message">⚡ ${data.winner.username} wins by time!</div>
+                     <div class="time-result">⏱️ Completed in ${timeInSeconds}s (faster player wins draws)</div>`;
             } else {
                 document.getElementById('info').innerHTML = 
                     `<div class="winner-message">🏆 ${data.winner.username} wins!</div>`;
@@ -241,6 +255,22 @@ function updateMultiLevelDisplay() {
         document.getElementById('levelsWonDisplay').innerHTML = levelsWon
             .map(l => `<span class="level-score">${l.username}: ${l.levelsWon} wins</span>`)
             .join(' | ');
+    }
+}
+
+// Update player times display
+function updatePlayerTimes(playerTimes) {
+    if (!playerTimes || playerTimes.length === 0) return;
+    
+    const timesHtml = playerTimes.map(player => {
+        const timeInSeconds = (player.totalTimeTaken / 1000).toFixed(2);
+        const isMyTurn = player.userId === localStorage.getItem('userId');
+        return `<span class="time-display">${player.username}: ${timeInSeconds}s</span>`;
+    }).join(' | ');
+    
+    const timeDisplay = document.getElementById('timeDisplay');
+    if (timeDisplay) {
+        timeDisplay.innerHTML = timesHtml;
     }
 }
 
