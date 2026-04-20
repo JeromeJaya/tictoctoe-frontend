@@ -4,6 +4,18 @@ let friendsList = [];
 let allUsers = [];
 let ws = null; // WebSocket connection
 
+// Track friend status updates using Map (userId -> status info)
+const friendStatusMap = new Map();
+
+// Track read notifications using Set
+const readNotifications = new Set();
+
+// Track animated DOM elements using WeakSet
+const animatedElements = new WeakSet();
+
+// Store challenge button metadata using WeakMap
+const buttonMetadata = new WeakMap();
+
 // Create floating particles
 function createParticles() {
     const particlesContainer = document.getElementById('particles');
@@ -754,6 +766,12 @@ function rejectChallenge() {
 
 // Update user status in the UI dynamically
 function updateUserStatusInUI(userId, status) {
+    // Update friend status map
+    friendStatusMap.set(userId, {
+        status,
+        lastUpdated: Date.now()
+    });
+    
     // Update friend cards in the friends list
     const friendCards = document.querySelectorAll('.friend-card');
     friendCards.forEach(card => {
@@ -983,3 +1001,78 @@ function showNotification(message, type = 'info') {
 
 // Load dashboard data on page load
 loadDashboardData();
+
+// Helper function to get online friends count (using Set and Map)
+function getOnlineFriendsCount() {
+    let count = 0;
+    friendStatusMap.forEach((data) => {
+        if (data.status === 'online') count++;
+    });
+    return count;
+}
+
+// Helper function to check if notification was read (using Set)
+function isNotificationRead(notificationId) {
+    return readNotifications.has(notificationId);
+}
+
+// Helper function to mark notification as read (using Set)
+function markNotificationRead(notificationId) {
+    readNotifications.add(notificationId);
+}
+
+// Helper function to animate element with tracking (using WeakSet)
+function animateWithTracking(element, animationClass) {
+    if (!animatedElements.has(element)) {
+        animatedElements.add(element);
+        element.classList.add(animationClass);
+        
+        element.addEventListener('animationend', () => {
+            element.classList.remove(animationClass);
+            // Element will be automatically removed from WeakSet when no longer referenced
+        }, { once: true });
+    }
+}
+
+// Helper function to setup challenge button with metadata (using WeakMap)
+function setupChallengeButton(button, friendId, friendName) {
+    buttonMetadata.set(button, {
+        friendId,
+        friendName,
+        challengeCount: 0,
+        createdAt: Date.now()
+    });
+    
+    button.addEventListener('click', () => {
+        const metadata = buttonMetadata.get(button);
+        if (metadata) {
+            metadata.challengeCount++;
+            buttonMetadata.set(button, metadata);
+            console.log(`Challenged ${metadata.friendName} ${metadata.challengeCount} time(s)`);
+        }
+    });
+}
+
+// Helper function to get unique opponents from game history (using Set)
+function getUniqueOpponents(gameHistory) {
+    const opponentsSet = new Set(gameHistory.map(game => game.opponent));
+    return Array.from(opponentsSet);
+}
+
+// Helper function to calculate win statistics (using Map)
+function getWinStatistics(gameHistory) {
+    const statsMap = new Map();
+    
+    gameHistory.forEach(game => {
+        const opponent = game.opponent;
+        if (!statsMap.has(opponent)) {
+            statsMap.set(opponent, { played: 0, won: 0, lost: 0, drawn: 0 });
+        }
+        
+        const stats = statsMap.get(opponent);
+        stats.played++;
+        stats[game.result]++;
+    });
+    
+    return Object.fromEntries(statsMap);
+}
