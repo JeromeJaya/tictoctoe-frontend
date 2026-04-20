@@ -208,10 +208,14 @@ function updateGameState(data) {
                      <div class="multi-level-result">Levels Won: ${data.levelsWon.map(l => `${l.username}: ${l.levelsWon}`).join(' | ')}</div>`;
             } else if (data.winner.wonByTime) {
                 // Winner by time in a draw
-                const timeInSeconds = (data.winner.timeTaken / 1000).toFixed(2);
+                const winnerTimeInSeconds = (data.winner.timeTaken / 1000).toFixed(2);
+                const opponentTimeInSeconds = (data.winner.opponentTime / 1000).toFixed(2);
+                const timeDiffInSeconds = (data.winner.timeDifference / 1000).toFixed(2);
+                
                 document.getElementById('info').innerHTML = 
                     `<div class="winner-message">⚡ ${data.winner.username} wins by time!</div>
-                     <div class="time-result">⏱️ Completed in ${timeInSeconds}s (faster player wins draws)</div>`;
+                     <div class="time-result">⏱️ ${data.winner.username}: ${winnerTimeInSeconds}s vs Opponent: ${opponentTimeInSeconds}s</div>
+                     <div class="time-result">🚀 Won by ${timeDiffInSeconds}s faster!</div>`;
             } else {
                 document.getElementById('info').innerHTML = 
                     `<div class="winner-message">🏆 ${data.winner.username} wins!</div>`;
