@@ -201,7 +201,7 @@ function updateGameState(data) {
     updateInfo();
     
     if (data.gameStatus === 'finished') {
-        if (data.winner) {
+        if (data.winner && data.winner.username) {
             if (data.isMultiLevelWinner) {
                 document.getElementById('info').innerHTML = 
                     `<div class="winner-message">🏆 ${data.winner.username} wins the Multi-Level Battle!</div>
@@ -220,6 +220,11 @@ function updateGameState(data) {
                 document.getElementById('info').innerHTML = 
                     `<div class="winner-message">🏆 ${data.winner.username} wins!</div>`;
             }
+        } else if (data.winner && !data.winner.username) {
+            // Winner object exists but username is missing
+            console.error('Winner object missing username:', data.winner);
+            document.getElementById('info').innerHTML = 
+                '<div class="winner-message">🏆 Game Over!</div>';
         } else {
             document.getElementById('info').innerHTML = 
                 '<div class="draw-message">🤝 It\'s a draw!</div>';
